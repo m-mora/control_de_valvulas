@@ -6,7 +6,6 @@
 #include <ESP8266WebServer.h>
 #include "WiFiManager.h"          //https://github.com/tzapu/WiFiManager
 
-
 #define PIN_SOLAR   13
 #define PIN_BOILER  15
 #define PIN_BUTTON  12
@@ -19,13 +18,19 @@
 #define CLEARED     0
 #define PRESSED     1
 
+//Servo
 Servo servo_solar;
 Servo servo_boiler;
 int current_selection;
 int button_state = 0;
 
+
+// web
 // Set web server port number to 80
 WiFiServer server(80);
+
+void configModeCallback (WiFiManager *myWiFiManager);
+void Web_server ();
 
 // Variable to store the HTTP request
 String header;
@@ -37,18 +42,11 @@ unsigned long previousTime = 0;
 // Define timeout time in milliseconds (example: 2000ms = 2s)
 const long timeoutTime = 2000;
 
-
+// --------- Functions -----------------------------
 // Checks if button was pressed to change valve status
 IRAM_ATTR void button_pressed () {
   Serial.println("BUTTON PRESSED!!!");
   button_state = PRESSED;
-}
-
-void configModeCallback (WiFiManager *myWiFiManager) {
-  Serial.println("Entered config mode");
-  Serial.println(WiFi.softAPIP());
-  //if you used auto generated SSID, print it
-  Serial.println(myWiFiManager->getConfigPortalSSID());
 }
 
 int check_selection() 
@@ -66,10 +64,12 @@ void select_heater (int sel)
 {
   int pos;
   if (sel == SOLAR) {
+    // move the servo in steps
     for (pos = OFF; pos > ON; pos -= STEP) {
       servo_solar.write(pos);
       delay (STEP_DELAY);
     }
+    // move the servo in steps
     for (pos = ON; pos < OFF; pos += STEP) {
       servo_boiler.write(pos);
       delay (STEP_DELAY);
@@ -78,10 +78,12 @@ void select_heater (int sel)
     // servo_boiler.write (OFF);
     current_selection = SOLAR;
   } else {
+    // move the servo in steps
     for (pos = OFF; pos > ON; pos -= STEP) {
       servo_boiler.write(pos);
       delay (STEP_DELAY);
     }
+    // move the servo in steps
     for (pos = ON; pos < OFF; pos += STEP) {
       servo_solar.write(pos);
       delay (STEP_DELAY);
@@ -91,8 +93,6 @@ void select_heater (int sel)
     current_selection = BOILER;
   }
 }
-
-void Web_server ();
 
 void setup() {
   Serial.begin(115200);
@@ -113,6 +113,8 @@ void setup() {
   //set callback that gets called when connecting to previous WiFi fails, and enters Access Point mode
   wifiManager.setAPCallback(configModeCallback);
 
+  // Changes the hostname
+  WiFi.setHostname("MyValveCtlr");
   //fetches ssid and pass and tries to connect
   //if it does not connect it starts an access point with the specified name
   //here  "AutoConnectAP"
@@ -150,6 +152,13 @@ void loop() {
   Web_server();
 }
 
+// ------------------------------------------------------------------------------------
+void configModeCallback (WiFiManager *myWiFiManager) {
+  Serial.println("Entered config mode");
+  Serial.println(WiFi.softAPIP());
+  //if you used auto generated SSID, print it
+  Serial.println(myWiFiManager->getConfigPortalSSID());
+}
 
 void Web_server () {
   String State;
