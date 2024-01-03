@@ -1,4 +1,4 @@
-# Control de Valvulas
+# Control de Válvulas
 
 La intención de este proyecto es cerrar o abrir un par de válvulas para seleccionar la fuente de agua caliente
 
