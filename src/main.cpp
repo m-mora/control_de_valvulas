@@ -65,10 +65,7 @@ int check_selection()
   {
     return SOLAR;
   }
-  else
-  {
-    return BOILER;
-  }
+  return BOILER;
 }
 
 void select_heater(int sel)
