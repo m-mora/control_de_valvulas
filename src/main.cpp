@@ -65,50 +65,51 @@ int check_selection()
   {
     return SOLAR;
   }
-  else
-  {
-    return BOILER;
-  }
+  return BOILER;
 }
 
-void select_heater(int sel)
+void switch_heater()
 {
   int pos;
-  if (sel == SOLAR)
+  if (check_selection() == SOLAR)
   {
     // move the servo in steps
-    for (pos = OFF; pos > ON; pos -= STEP)
-    {
-      servo_solar.write(pos);
-      delay(STEP_DELAY);
-    }
-    // move the servo in steps
-    for (pos = ON; pos < OFF; pos += STEP)
+    for (pos = ON; pos <= OFF; pos += STEP)
     {
       servo_boiler.write(pos);
       delay(STEP_DELAY);
     }
-    // servo_solar.write(ON);
+    Serial.printf ("Boiler is off - %d degrees\n",pos-STEP);
+    // move the servo in steps
+    for (pos = OFF; pos >= ON; pos -= STEP)
+    {
+      servo_solar.write(pos);
+      delay(STEP_DELAY);
+    }
+    Serial.printf ("Solar is on - %d degrees\n",pos+STEP);
     // servo_boiler.write (OFF);
-    current_selection = SOLAR;
+    // servo_solar.write(ON);
+    current_selection = BOILER;
   }
   else
   {
     // move the servo in steps
-    for (pos = OFF; pos > ON; pos -= STEP)
-    {
-      servo_boiler.write(pos);
-      delay(STEP_DELAY);
-    }
-    // move the servo in steps
-    for (pos = ON; pos < OFF; pos += STEP)
+    for (pos = ON; pos <= OFF; pos += STEP)
     {
       servo_solar.write(pos);
       delay(STEP_DELAY);
     }
-    // servo_boiler.write (ON);
+    Serial.printf ("Solar is off - %d degrees\n",pos-STEP);
+    // move the servo in steps
+    for (pos = OFF; pos >= ON; pos -= STEP)
+    {
+      servo_boiler.write(pos);
+      delay(STEP_DELAY);
+    }
+    Serial.printf ("Boiler is on - %d degrees\n",pos+STEP);
     // servo_solar.write (OFF);
-    current_selection = BOILER;
+    // servo_boiler.write (ON);
+    current_selection = SOLAR;
   }
 }
 
@@ -133,6 +134,7 @@ bool check_reset()
   lastState = currentState;
   return false;
 }
+  WiFiManager wifiManager;
 
 void setup()
 {
@@ -140,7 +142,8 @@ void setup()
 
   servo_solar.attach(PIN_SOLAR);
   servo_boiler.attach(PIN_BOILER);
-  select_heater(SOLAR);
+  servo_solar.write(ON);
+  servo_boiler.write(OFF);
   pinMode(PIN_BUTTON, INPUT);
   Serial.println("Attaching int");
   attachInterrupt(digitalPinToInterrupt(PIN_BUTTON), button_pressed, FALLING);
@@ -148,7 +151,7 @@ void setup()
 
   // WiFiManager
   // Local intialization. Once its business is done, there is no need to keep it around
-  WiFiManager wifiManager;
+  //WiFiManager wifiManager;
   // reset settings - for testing
   // wifiManager.resetSettings();
 
@@ -173,6 +176,7 @@ void setup()
   Serial.println("connected...:)");
 
   server.begin();
+
 }
 
 void loop()
@@ -180,21 +184,14 @@ void loop()
   if (check_reset()) {
     Serial.println ("wifi reset .....");
     WiFi.disconnect();
-//    ESP.reset();    
+    wifiManager.resetSettings();
+    ESP.reset();    
+    delay(1000);
   }
 
   if (button_state == PRESSED)
   {
-    if (check_selection() == SOLAR)
-    {
-      select_heater(BOILER);
-      Serial.println("Boiler");
-    }
-    else
-    {
-      select_heater(SOLAR);
-      Serial.println("Solar");
-    }
+    switch_heater();
     button_state = CLEARED;
   }
   delay(200);
@@ -247,13 +244,13 @@ void Web_server()
             {
               Serial.println("Solar on");
               State = "on";
-              select_heater(SOLAR);
+              switch_heater();
             }
             else if (header.indexOf("GET /solar/off") >= 0)
             {
               Serial.println("Solar off");
               State = "off";
-              select_heater(BOILER);
+              switch_heater();
             }
 
             // Display the HTML web page
